@@ -1,6 +1,8 @@
 import re
 import sys
 
+#Función que imprime los datos proporcionados en una tabla 
+#con formato, utilizando encabezados especificados
 def print_table(data, headers):
     max_widths = [max(len(str(x)) for x in col) for col in zip(*data, headers)]
 
@@ -13,6 +15,9 @@ def print_table(data, headers):
     for row in data:
         print(format_string.format(*row))
 
+#Función principal que toma el nombre de un archivo como 
+#entrada, lee el contenido del archivo y luego llama a la 
+#función token_generator para cada línea del archivo
 def lexerAritmetico(archivo):
     with open(archivo, 'r') as file:
         content = file.readlines()
@@ -26,6 +31,9 @@ def lexerAritmetico(archivo):
     
     print_table(table_data, headers=["Token", "Tipo"])
 
+#Función que toma una línea de entrada y, utilizando un autómata
+#de estados finitos, genera tokens a partir de la línea 
+#y los devuelve en una lista
 def token_generator(line):
     state = 0
     lexeme = ''
@@ -36,6 +44,9 @@ def token_generator(line):
     
     return tokens
 
+#Función procesa cada carácter en la línea de entrada, 
+#actualiza el estado del autómata y agrega tokens a la
+#lista de tokens según las reglas del autómata
 def process_char(state, char, lexeme, tokens):
     if state == 0:
         if char.isalpha():
@@ -46,7 +57,7 @@ def process_char(state, char, lexeme, tokens):
             return 3, char
         elif char == '-':
             return 7, char
-        elif char in "+=*/":
+        elif char in "+=*":
             tokens.append((char, token_type(char)))
             return 0, ''
         elif char == '^':
@@ -61,8 +72,12 @@ def process_char(state, char, lexeme, tokens):
         elif char == '#':
             lexeme = char
             return 8, lexeme
+        elif char == '/':
+            return 9, char
         elif char.isspace():
             return 0, ''
+        else:
+            return -1, char
     elif state == 1:
         if char.isalnum() or char == '_':
             return 1, lexeme + char
@@ -109,14 +124,6 @@ def process_char(state, char, lexeme, tokens):
         else:
             tokens.append((lexeme, "Real"))
             return process_char(0, char, '', tokens)
-    elif state == 7:
-        if char.isdigit():
-            return 2, lexeme + char
-        elif char == '.':
-            return 3, lexeme + char
-        else:
-            tokens.append((lexeme, "Resta"))
-            return process_char(0, char, '', tokens)
     elif state == 8:
         if char == '\n':
             tokens.append((lexeme, "Comentario"))
@@ -124,8 +131,27 @@ def process_char(state, char, lexeme, tokens):
         else:
             lexeme += char
             return 8, lexeme
-    return state, lexeme
+    elif state == -1:
+        if char == '\n':
+            tokens.append(('//', 'No aceptado'))
+            return 0, ''
+        else:
+            tokens.append((lexeme, "No aceptado"))
+            return process_char(0, char, '', tokens)
+    elif state == 9:
+        if char == '/':
+            tokens.append(('//', 'No aceptado'))
+            return 8, ''
+        else:
+            tokens.append(('/', 'División'))
+            return process_char(0, char, '', tokens)
+    elif char.isspace() or char == '\n':
+        return 0, ''
+    else:
+        return state, lexeme
 
+#Función que toma un carácter de entrada y devuelve el tipo 
+#de token correspondiente al carácter
 def token_type(char):
     if char == "=":
         return "Asignación"
